@@ -22,11 +22,9 @@ Aucun serveur, aucune installation : l'application tourne entièrement dans le n
 ## Démarrage rapide
 
 ### Option 1 : en ligne (GitHub Pages)
-1. Dans le dépôt, allez dans **Settings → Pages** et choisissez **Source : GitHub Actions**.
-2. Le workflow `.github/workflows/pages.yml` publie automatiquement l'application à chaque `push` sur `main`.
-3. Ouvrez l'URL fournie, cliquez sur **Paramètres** et ajoutez votre clé API.
-
-> GitHub Pages sur un dépôt privé nécessite un abonnement GitHub payant. Sinon, rendez le dépôt public ou utilisez l'option 2. Vercel ou Netlify fonctionnent aussi : déployez simplement le dossier racine.
+L'application est publiée sur **https://diallooumar224.github.io/nimba-ia/**.
+Chaque `push` sur la branche `main` met le site à jour automatiquement (Settings → Pages → Deploy from a branch → `main` / racine).
+Ouvrez le lien, cliquez sur **Paramètres** et ajoutez votre clé API.
 
 ### Option 2 : en local
 ```bash
@@ -61,6 +59,7 @@ js/llm.js             Client compatible OpenAI (streaming + appels d'outils)
 js/tools.js           Définition et exécution des outils
 js/storage.js         Persistance locale
 sw.js                 Cache hors ligne (PWA)
+.nojekyll             Publication GitHub Pages sans traitement Jekyll
 dev/mock-server.py    Faux serveur d'IA pour tester sans clé
 ```
 
