@@ -41,7 +41,7 @@ python3 -m http.server 8080
 - **OpenRouter** : accès à des centaines de modèles sur [openrouter.ai](https://openrouter.ai/keys)
 - **Ollama** : 100 % local et gratuit, sans clé ([ollama.com](https://ollama.com)). Lancez `OLLAMA_ORIGINS=* ollama serve`.
 
-Choisissez un modèle qui prend en charge les **appels d'outils** (function calling), par exemple `gpt-4o-mini`, `gemini-2.5-flash`, `llama-3.3-70b-versatile` ou `mistral-small-latest`.
+Choisissez un modèle qui prend en charge les **appels d'outils** (function calling), par exemple `gpt-4o-mini`, `gemini-3.5-flash-lite`, `openai/gpt-oss-120b` ou `mistral-small-latest`.
 
 ## Confidentialité
 - La clé API, les conversations, la mémoire et les fichiers restent dans le `localStorage` de votre navigateur.

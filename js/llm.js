@@ -3,8 +3,8 @@
 export const PROVIDERS = {
   openai:     { label: 'OpenAI',            baseUrl: 'https://api.openai.com/v1', model: 'gpt-4o-mini' },
   openrouter: { label: 'OpenRouter (Claude, Gemini, Llama…)', baseUrl: 'https://openrouter.ai/api/v1', model: 'openai/gpt-4o-mini' },
-  gemini:     { label: 'Google Gemini',     baseUrl: 'https://generativelanguage.googleapis.com/v1beta/openai', model: 'gemini-2.5-flash' },
-  groq:       { label: 'Groq',              baseUrl: 'https://api.groq.com/openai/v1', model: 'llama-3.3-70b-versatile' },
+  gemini:     { label: 'Google Gemini (gratuit)',     baseUrl: 'https://generativelanguage.googleapis.com/v1beta/openai', model: 'gemini-3.5-flash-lite' },
+  groq:       { label: 'Groq (gratuit)',              baseUrl: 'https://api.groq.com/openai/v1', model: 'openai/gpt-oss-120b' },
   mistral:    { label: 'Mistral AI',        baseUrl: 'https://api.mistral.ai/v1', model: 'mistral-small-latest' },
   deepseek:   { label: 'DeepSeek',          baseUrl: 'https://api.deepseek.com/v1', model: 'deepseek-chat' },
   ollama:     { label: 'Ollama (local, gratuit)', baseUrl: 'http://localhost:11434/v1', model: 'llama3.1' },
