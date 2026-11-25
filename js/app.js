@@ -3,12 +3,14 @@ import { load, save, wipe, uid, persistent } from './storage.js';
 import { PROVIDERS, chat as llmChat } from './llm.js';
 import { TOOL_GROUPS } from './tools.js';
 import { runAgent } from './agent.js';
+import { newsSearch } from './search.js';
 
 const $ = (s, r = document) => r.querySelector(s);
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
 // ---------- État ----------
-const DEFAULT_SETTINGS = { provider: 'openai', baseUrl: PROVIDERS.openai.baseUrl, apiKey: '', model: PROVIDERS.openai.model, temperature: 0.4, maxSteps: 15, approval: true, tts: false, system: '', tools: {}, theme: null };
+const DEFAULT_SETTINGS = { provider: 'openai', baseUrl: PROVIDERS.openai.baseUrl, apiKey: '', model: PROVIDERS.openai.model, temperature: 0.4, maxSteps: 15, approval: true, tts: false, system: '', tools: {}, theme: null,
+  searchEngine: 'tavily', tavilyKey: '', serperKey: '', searchLang: 'fr', searchCountry: 'gn', searchDepth: 'basic' };
 const state = {
   settings: { ...DEFAULT_SETTINGS, ...load('settings', {}) },
   convs: load('convs', []),
@@ -106,7 +108,7 @@ const SUGGESTIONS = [
   ['Étude de marché', "Fais une étude de marché synthétique sur la vente de panneaux solaires en Guinée et crée un rapport téléchargeable."],
   ['Plan financier', "Calcule le remboursement mensuel d'un prêt de 150 000 000 GNF sur 3 ans à 14 % par an, avec un tableau d'amortissement en CSV."],
   ['Analyse de données', "Génère 30 ventes fictives, analyse-les avec du code (total, moyenne, meilleur mois) et résume les tendances."],
-  ['Veille & météo', "Quelle météo à Conakry ces 3 prochains jours ? Propose un planning d'activités extérieures adapté."],
+  ['Revue de presse', "Fais-moi une revue de presse des actualités économiques en Guinée cette semaine, avec les sources."],
 ];
 
 function renderMessages(opts = {}) {
@@ -126,14 +128,15 @@ function renderMessages(opts = {}) {
   }
   const results = {};
   c.messages.forEach(m => { if (m.role === 'tool') results[m.tool_call_id] = m; });
-  let aiBlock = null;
+  let aiBlock = null, turnSources = [];
+  const flushSources = (blk) => { if (turnSources.length) { blk.appendChild(sourcesRow(turnSources)); turnSources = []; } };
   const ensureAi = () => {
     if (!aiBlock) { aiBlock = document.createElement('div'); aiBlock.className = 'msg msg-ai'; aiBlock.innerHTML = `<div class="who">Nimba</div>`; box.appendChild(aiBlock); }
     return aiBlock;
   };
   for (const m of c.messages) {
     if (m.role === 'user') {
-      aiBlock = null;
+      aiBlock = null; turnSources = [];
       const d = document.createElement('div'); d.className = 'msg msg-user';
       d.innerHTML = `<div class="bubble">${esc(m.content)}</div>`; box.appendChild(d);
     } else if (m.role === 'assistant') {
@@ -142,13 +145,14 @@ function renderMessages(opts = {}) {
         const el = document.createElement('div');
         el.className = m.tool_calls?.length ? 'thought content' : 'content';
         el.innerHTML = md(m.content); enhance(el); blk.appendChild(el);
-        if (!m.tool_calls?.length) blk.appendChild(actions(m.content));
+        if (!m.tool_calls?.length) { flushSources(blk); blk.appendChild(actions(m.content)); }
       }
       for (const call of m.tool_calls || []) {
         const r = results[call.id];
+        if (r?.sources) for (const src of r.sources) if (!turnSources.some(x => x.url === src.url)) turnSources.push(src);
         if (call.function.name === 'terminer' && r?.status === 'ok') {
           const el = document.createElement('div'); el.className = 'content'; el.innerHTML = md(r.content); enhance(el);
-          blk.appendChild(el); blk.appendChild(actions(r.content)); continue;
+          blk.appendChild(el); flushSources(blk); blk.appendChild(actions(r.content)); continue;
         }
         blk.appendChild(stepCard(call, r, opts.running === call.id));
       }
@@ -171,6 +175,15 @@ function stepCard(call, r, running) {
   d.innerHTML = `<summary><span class="badge"></span><span class="tool">${esc(call.function.name)}</span><span class="arg">${esc(args.slice(0, 140))}</span><span>${label}</span></summary>
     <pre><b>Entrée</b>\n${esc(pretty)}${r ? `\n\n<b>Résultat</b>\n${esc(r.content)}` : ''}</pre>`;
   return d;
+}
+
+function sourcesRow(list) {
+  const wrap = document.createElement('details'); wrap.className = 'sources';
+  const fav = (u) => { try { return `https://www.google.com/s2/favicons?sz=32&domain=${new URL(u).hostname}`; } catch { return ''; } };
+  const top = list.slice(0, 4).map(x => `<img src="${esc(fav(x.url))}" alt="" loading="lazy">`).join('');
+  wrap.innerHTML = `<summary><span class="favs">${top}</span>${list.length} source${list.length > 1 ? 's' : ''} consultée${list.length > 1 ? 's' : ''}</summary>
+    <ol>${list.map(x => `<li><a href="${esc(x.url)}" target="_blank" rel="noopener"><span class="s-title">${esc(x.title)}</span><span class="s-meta">${esc(x.source || '')}${x.date ? ' · ' + esc(x.date) : ''}</span></a></li>`).join('')}</ol>`;
+  return wrap;
 }
 
 function actions(text) {
@@ -311,7 +324,7 @@ $('#composer').onsubmit = async (e) => {
     await runAgent({
       conv: c, settings: s, mode: state.mode, signal: ac.signal,
       memory: () => state.memory,
-      ctx: { setPlan, memSet, memAll: () => state.memory, addFile },
+      ctx: { setPlan, memSet, memAll: () => state.memory, addFile, settings: () => state.settings },
       hooks: {
         onStreamStart: streamStart, onDelta: streamDelta,
         onUpdate: (o) => { liveEl = null; c.updated = Date.now(); persist(); renderMessages(o || {}); },
@@ -379,14 +392,18 @@ function openSettings() {
   $('#sTemp').value = s.temperature; $('#sTempOut').textContent = s.temperature; $('#sMaxSteps').value = s.maxSteps;
   $('#sApproval').checked = s.approval; $('#sTts').checked = s.tts; $('#sSystem').value = s.system;
   document.querySelectorAll('[data-tool]').forEach(c => (c.checked = s.tools[c.dataset.tool] !== false));
-  $('#testResult').textContent = '';
+  $('#sEngine').value = s.searchEngine; $('#sTavilyKey').value = s.tavilyKey; $('#sSerperKey').value = s.serperKey;
+  $('#sSearchLang').value = s.searchLang; $('#sSearchCountry').value = s.searchCountry; $('#sDepth').value = s.searchDepth;
+  $('#testResult').textContent = ''; $('#testSearchResult').textContent = '';
   $('#settingsModal').showModal();
 }
 function readForm() {
   const tools = {}; document.querySelectorAll('[data-tool]').forEach(c => (tools[c.dataset.tool] = c.checked));
   return { ...state.settings, provider: sel.value, baseUrl: $('#sBaseUrl').value.trim(), apiKey: $('#sApiKey').value.trim(), model: $('#sModel').value.trim(),
     temperature: Number($('#sTemp').value), maxSteps: Math.min(50, Math.max(1, Number($('#sMaxSteps').value) || 15)),
-    approval: $('#sApproval').checked, tts: $('#sTts').checked, system: $('#sSystem').value, tools };
+    approval: $('#sApproval').checked, tts: $('#sTts').checked, system: $('#sSystem').value, tools,
+    searchEngine: $('#sEngine').value, tavilyKey: $('#sTavilyKey').value.trim(), serperKey: $('#sSerperKey').value.trim(),
+    searchLang: $('#sSearchLang').value.trim() || 'fr', searchCountry: $('#sSearchCountry').value.trim().toLowerCase(), searchDepth: $('#sDepth').value };
 }
 $('#openSettings').onclick = () => { closeMobile(); openSettings(); };
 $('#settingsModal').addEventListener('close', () => {
@@ -402,8 +419,16 @@ $('#testConn').onclick = async () => {
     out.style.color = 'var(--ok)'; out.textContent = 'Connexion réussie · ' + (txt.trim().slice(0, 30) || 'OK');
   } catch (e) { out.style.color = 'var(--err)'; out.textContent = e.message.slice(0, 200); }
 };
+$('#testSearch').onclick = async () => {
+  const s = readForm(); const out = $('#testSearchResult');
+  out.style.color = 'var(--muted)'; out.textContent = 'Recherche en cours…';
+  try {
+    const r = await newsSearch({ requete: 'Guinée', periode: 'semaine', nombre: 3 }, s);
+    out.style.color = 'var(--ok)'; out.textContent = `Recherche OK · ${r.sources.length} article(s) · ${r.sources[0]?.title?.slice(0, 50) || ''}`;
+  } catch (e) { out.style.color = 'var(--err)'; out.textContent = e.message.slice(0, 220); }
+};
 $('#exportData').onclick = () => {
-  const data = { version: 1, exported: new Date().toISOString(), convs: state.convs, memory: state.memory, files: state.files, settings: { ...state.settings, apiKey: '' } };
+  const data = { version: 1, exported: new Date().toISOString(), convs: state.convs, memory: state.memory, files: state.files, settings: { ...state.settings, apiKey: '', tavilyKey: '', serperKey: '' } };
   download({ name: `nimba-sauvegarde-${new Date().toISOString().slice(0, 10)}.json`, content: JSON.stringify(data, null, 2) });
 };
 $('#importData').onchange = async (e) => {

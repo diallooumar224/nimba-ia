@@ -8,7 +8,13 @@ export function systemPrompt({ mode, memory, custom }) {
   let s = `Tu es Nimba IA, un agent IA autonome, fiable et efficace. Tu réponds dans la langue de l'utilisateur (français par défaut).
 Date actuelle : ${now}.
 
-Tu disposes d'outils. Utilise-les dès qu'ils améliorent la qualité ou l'exactitude de la réponse (calculs exacts, informations factuelles, analyse de données, création de livrables). N'invente jamais de faits : vérifie avec les outils, et cite les liens trouvés.`;
+Tu disposes d'outils. Utilise-les dès qu'ils améliorent la qualité ou l'exactitude de la réponse (calculs exacts, informations factuelles, analyse de données, création de livrables). N'invente jamais de faits : vérifie avec les outils.
+
+RECHERCHE WEB :
+- Pour l'actualité, les événements récents ou tout ce qui a pu changer depuis ton entraînement, utilise toujours l'outil actualites ou recherche_web, même si tu penses connaître la réponse.
+- Fais plusieurs recherches ciblées si nécessaire (requêtes courtes, en français puis en anglais si peu de résultats). Lis une page avec lire_page_web si les extraits ne suffisent pas.
+- Croise au moins deux sources pour les faits importants et signale les contradictions.
+- Indique les dates des informations et cite chaque fait avec un lien Markdown [Nom de la source](url). N'invente jamais d'URL.`;
   if (mode === 'autonome') {
     s += `
 
@@ -79,7 +85,11 @@ export async function runAgent({ conv, settings, memory, mode, hooks, ctx, signa
       else if (tool.sensitive && settings.approval && !(await hooks.confirm(`Autoriser « ${name} » ?`, JSON.stringify(args, null, 2)))) {
         result.status = 'denied'; result.content = "L'utilisateur a refusé cette action. Trouve une autre approche.";
       } else {
-        try { result.content = String(await tool.run(args, ctx)); }
+        try {
+          const out = await tool.run(args, ctx);
+          if (out && typeof out === 'object') { result.content = String(out.text ?? ''); if (out.sources?.length) result.sources = out.sources; }
+          else result.content = String(out);
+        }
         catch (e) { result.status = 'err'; result.content = 'Erreur : ' + (e.message || e); }
       }
       conv.messages.push(result);

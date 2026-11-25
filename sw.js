@@ -1,6 +1,6 @@
 // Service worker : met en cache l'interface pour un démarrage hors ligne
-const CACHE = 'nimba-v1';
-const ASSETS = ['./', 'index.html', 'css/style.css', 'js/app.js', 'js/agent.js', 'js/llm.js', 'js/tools.js', 'js/storage.js', 'icon.svg', 'manifest.webmanifest'];
+const CACHE = 'nimba-v2';
+const ASSETS = ['./', 'index.html', 'css/style.css', 'js/app.js', 'js/agent.js', 'js/llm.js', 'js/tools.js', 'js/storage.js', 'js/search.js', 'icon.svg', 'manifest.webmanifest'];
 self.addEventListener('install', e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS))); self.skipWaiting(); });
 self.addEventListener('activate', e => { e.waitUntil(caches.keys().then(k => Promise.all(k.filter(x => x !== CACHE).map(x => caches.delete(x))))); self.clients.claim(); });
 self.addEventListener('fetch', e => {

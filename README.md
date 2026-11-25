@@ -10,7 +10,8 @@ Aucun serveur, aucune installation : l'application tourne entièrement dans le n
 |---|---|
 | Mode autonome | Boucle réflexion → action → observation, avec plan d'action visible, suivi de progression et nombre d'étapes réglable (1 à 50) |
 | Mode assistant | Discussion classique avec réponses en streaming et accès aux outils |
-| Outils | Recherche web (Wikipédia), lecture de pages web, exécution de JavaScript en bac à sable, calculatrice, météo, date/heure, mémoire, création de fichiers |
+| Recherche web | Recherche web complète et actualités datées (Tavily sans clé, ou Google via Serper), filtre par période (jour, semaine, mois, année) et par site, lecture intégrale de pages, Wikipédia en secours, sources cliquables sous chaque réponse |
+| Outils | Lecture de pages web, exécution de JavaScript en bac à sable, calculatrice, météo, date/heure, mémoire, création de fichiers |
 | Sécurité | Validation humaine (optionnelle) avant les actions sensibles ; code exécuté dans un Web Worker isolé avec délai maximal de 8 s |
 | Mémoire long terme | Faits sur l'utilisateur partagés entre toutes les conversations, modifiables à la main |
 | Fichiers | Rapports `.md`, tableaux `.csv`, pages `.html`, scripts… avec aperçu, copie et téléchargement |
@@ -43,11 +44,16 @@ python3 -m http.server 8080
 
 Choisissez un modèle qui prend en charge les **appels d'outils** (function calling), par exemple `gpt-4o-mini`, `gemini-3.5-flash-lite`, `openai/gpt-oss-120b` ou `mistral-small-latest`.
 
+## Recherche web et actualités
+- Fonctionne **sans clé** grâce à l'accès gratuit de [Tavily](https://docs.tavily.com/documentation/keyless) (quota quotidien limité par appareil).
+- Pour un usage régulier, créez une clé gratuite Tavily (1 000 recherches/mois) sur [app.tavily.com](https://app.tavily.com), ou une clé [Serper](https://serper.dev) (2 500 recherches offertes, résultats Google et Google Actualités), puis collez-la dans **Paramètres → Recherche web et actualités**.
+- Exemples : « Actualités économiques en Guinée cette semaine », « Que dit la presse sur Simandou aujourd'hui ? ».
+
 ## Confidentialité
 - La clé API, les conversations, la mémoire et les fichiers restent dans le `localStorage` de votre navigateur.
 - Les messages sont envoyés uniquement au fournisseur d'IA que vous avez choisi.
-- Les outils web appellent Wikipédia, Open-Meteo et r.jina.ai (lecture de pages) ; vous pouvez désactiver chaque outil dans les paramètres.
-- L'export exclut la clé API.
+- Les outils web appellent Tavily ou Serper (recherche et actualités), Wikipédia, Open-Meteo et r.jina.ai (lecture de pages) ; vous pouvez désactiver chaque outil dans les paramètres.
+- L'export exclut les clés API.
 
 ## Architecture
 ```
@@ -57,6 +63,7 @@ js/app.js             Interface, état, rendu, paramètres, voix
 js/agent.js           Boucle de l'agent autonome et prompt système
 js/llm.js             Client compatible OpenAI (streaming + appels d'outils)
 js/tools.js           Définition et exécution des outils
+js/search.js          Recherche web, actualités, lecture de pages (Tavily, Serper, Wikipédia)
 js/storage.js         Persistance locale
 sw.js                 Cache hors ligne (PWA)
 .nojekyll             Publication GitHub Pages sans traitement Jekyll

@@ -123,6 +123,39 @@
           <span class="test-result" id="testResult"></span>
         </fieldset>
         <fieldset>
+          <legend>Recherche web et actualités</legend>
+          <label>Moteur
+            <select id="sEngine" class="input">
+              <option value="tavily">Tavily (fonctionne sans clé)</option>
+              <option value="serper">Google via Serper (clé requise)</option>
+            </select>
+          </label>
+          <label>Clé Tavily (optionnelle)
+            <input id="sTavilyKey" class="input mono" type="password" autocomplete="off" placeholder="tvly-…" />
+            <small>Sans clé : accès gratuit limité. Clé gratuite (1 000 recherches/mois) sur <a href="https://app.tavily.com" target="_blank" rel="noopener">app.tavily.com</a>.</small>
+          </label>
+          <label>Clé Serper (pour les résultats Google)
+            <input id="sSerperKey" class="input mono" type="password" autocomplete="off" placeholder="Clé serper.dev" />
+            <small>2 500 recherches offertes sur <a href="https://serper.dev" target="_blank" rel="noopener">serper.dev</a>.</small>
+          </label>
+          <div class="grid-2">
+            <label>Langue des résultats
+              <input id="sSearchLang" class="input" placeholder="fr" />
+            </label>
+            <label>Pays (Google, code à 2 lettres)
+              <input id="sSearchCountry" class="input" placeholder="gn" />
+            </label>
+          </div>
+          <label>Profondeur (Tavily)
+            <select id="sDepth" class="input">
+              <option value="basic">Standard (1 crédit)</option>
+              <option value="advanced">Approfondie (2 crédits)</option>
+            </select>
+          </label>
+          <button type="button" class="btn btn-ghost" id="testSearch">Tester la recherche</button>
+          <span class="test-result" id="testSearchResult"></span>
+        </fieldset>
+        <fieldset>
           <legend>Comportement</legend>
           <label class="check"><input type="checkbox" id="sApproval" /> Demander mon accord avant les actions sensibles (code, lecture de pages)</label>
           <label class="check"><input type="checkbox" id="sTts" /> Lire les réponses à voix haute automatiquement</label>

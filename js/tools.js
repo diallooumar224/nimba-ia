@@ -1,3 +1,5 @@
+import { webSearch, newsSearch, readPage, wikiSearch } from './search.js';
+
 // Outils disponibles pour l'agent. Chaque outil : définition (schéma JSON) + exécution.
 
 const fn = (name, description, properties = {}, required = []) => ({
@@ -20,36 +22,40 @@ export const TOOLS = {
   },
 
   recherche_web: {
-    label: 'Recherche web (Wikipédia)',
-    def: fn('recherche_web', "Recherche des informations encyclopédiques sur Wikipédia. Retourne titres, extraits et liens.",
-      { requete: { type: 'string', description: 'Termes de recherche' }, langue: { type: 'string', description: 'Code langue (fr, en…). Défaut : fr' } }, ['requete']),
-    run: async ({ requete, langue = 'fr' }) => {
-      const base = `https://${langue}.wikipedia.org/w/api.php`;
-      const q = new URLSearchParams({ action: 'query', list: 'search', srsearch: requete, format: 'json', origin: '*', srlimit: '5' });
-      const r = await fetch(`${base}?${q}`); const j = await r.json();
-      const hits = j.query?.search || [];
-      if (!hits.length) return 'Aucun résultat.';
-      const ids = hits.slice(0, 3).map(h => h.pageid).join('|');
-      const q2 = new URLSearchParams({ action: 'query', prop: 'extracts', exintro: '1', explaintext: '1', pageids: ids, format: 'json', origin: '*' });
-      const j2 = await (await fetch(`${base}?${q2}`)).json();
-      const ex = j2.query?.pages || {};
-      return hits.map(h => {
-        const e = ex[h.pageid]?.extract;
-        return `## ${h.title}\nhttps://${langue}.wikipedia.org/?curid=${h.pageid}\n${trunc(e || h.snippet.replace(/<[^>]+>/g, ''), 1500)}`;
-      }).join('\n\n');
-    },
+    label: 'Recherche web',
+    def: fn('recherche_web',
+      "Recherche sur tout le web (moteur Tavily ou Google). À utiliser pour toute information factuelle, récente ou vérifiable : prix, entreprises, personnes, lois, statistiques, produits, tendances. Retourne titres, liens, dates et extraits.",
+      { requete: { type: 'string', description: 'Requête courte et précise, comme dans Google' },
+        periode: { type: 'string', enum: ['tout', 'jour', 'semaine', 'mois', 'annee'], description: 'Limiter aux résultats récents. Défaut : tout' },
+        nombre: { type: 'integer', description: 'Nombre de résultats (1–10). Défaut : 6' },
+        domaines: { type: 'array', items: { type: 'string' }, description: 'Optionnel : limiter à certains sites, ex. ["guineenews.org"]' } },
+      ['requete']),
+    run: (a, ctx) => webSearch(a, ctx.settings()),
+  },
+
+  actualites: {
+    label: 'Actualités',
+    def: fn('actualites',
+      "Cherche les dernières actualités (articles de presse datés). À utiliser OBLIGATOIREMENT pour toute question sur l'actualité, des événements récents, « aujourd'hui », « cette semaine », la politique, l'économie, le sport ou la météo des marchés.",
+      { requete: { type: 'string', description: 'Sujet, ex. « économie Guinée » ou « Conakry »' },
+        periode: { type: 'string', enum: ['jour', 'semaine', 'mois', 'annee'], description: 'Défaut : semaine' },
+        nombre: { type: 'integer', description: "Nombre d'articles (1–15). Défaut : 8" } },
+      ['requete']),
+    run: (a, ctx) => newsSearch(a, ctx.settings()),
   },
 
   lire_page_web: {
     label: 'Lecture de pages web', sensitive: true,
-    def: fn('lire_page_web', "Lit le contenu textuel d'une page web à partir de son URL (via le service de lecture r.jina.ai).",
+    def: fn('lire_page_web', "Lit le contenu complet d'une page web (article, documentation, fiche produit) à partir de son URL. Utile pour approfondir un résultat de recherche.",
       { url: { type: 'string' } }, ['url']),
-    run: async ({ url }) => {
-      if (!/^https?:\/\//i.test(url)) throw new Error('URL invalide');
-      const r = await fetch('https://r.jina.ai/' + url, { headers: { Accept: 'text/plain' } });
-      if (!r.ok) throw new Error('Lecture impossible (HTTP ' + r.status + ')');
-      return trunc(await r.text(), 8000);
-    },
+    run: (a, ctx) => readPage(a, ctx.settings()),
+  },
+
+  recherche_wikipedia: {
+    label: 'Wikipédia',
+    def: fn('recherche_wikipedia', "Recherche encyclopédique sur Wikipédia (définitions, histoire, géographie, biographies).",
+      { requete: { type: 'string' }, langue: { type: 'string', description: 'Code langue (fr, en…). Défaut : fr' } }, ['requete']),
+    run: (a) => wikiSearch(a),
   },
 
   executer_javascript: {

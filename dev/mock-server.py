@@ -18,6 +18,11 @@ def script(msgs):
         ("", "mettre_a_jour_plan", plan(["termine", "termine", "termine"])),
         ("", "terminer", {"resume": "## Mission accomplie\n\n- Intérêts mensuels : **1 750 000 GNF**\n- Rapport créé : `rapport-test.md`\n\n```js\nconsole.log('ok')\n```"}),
     ]
+    if 'actu' in last_user.lower():
+        news = [("Je cherche les dernières actualités.", "actualites", {"requete": "Guinée économie", "periode": "semaine", "nombre": 5}),
+                ("", "recherche_web", {"requete": "Simandou production minerai de fer 2026", "nombre": 4}),
+                ("", "terminer", {"resume": "## Revue de presse\n\nVoici les principales actualités trouvées (voir sources ci-dessous)."})]
+        return news[n_tool] if n_tool < len(news) else ("Terminé.", None, None)
     if not autonome:
         return ("Bonjour ! Voici une réponse **en mode assistant** à : " + last_user, None, None)
     if n_tool < len(steps):
